@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "defines": [
+                "__KERNEL__",
+                "MODULE"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "intelliSenseMode": "linux-gcc-arm64",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/lib/modules/6.12.34+rpt-rpi-2712/source/include",
+                "/usr/src/linux-headers-6.12.34+rpt-rpi-2712/arch/arm64/include/generated",
+                "/usr/src/linux-headers-6.12.34+rpt-rpi-2712/include",
+                "/usr/src/linux-headers-6.12.34+rpt-common-rpi/arch/arm64/include"
+            ]
+        }
+    ],
+    "version": 4
+}
