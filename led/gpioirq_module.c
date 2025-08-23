@@ -43,6 +43,15 @@ static struct file_operations gpio_fops = {
 
 static int switch_irq;
 static irqreturn_t isr_func(int irq, void* data) {
+  static unsigned long last_jiffies = 0;
+  unsigned long now = jiffies;
+
+  // 200ms 안에 들어온 인터럽트는 무시
+  if (time_before(now, last_jiffies + msecs_to_jiffies(200)))
+    return IRQ_HANDLED;
+
+  last_jiffies = now;
+
   if (irq == switch_irq && !gpio_get_value(GPIO_LED)) {
     gpio_set_value(GPIO_LED, 1);
   }
