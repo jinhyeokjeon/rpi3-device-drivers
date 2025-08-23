@@ -47,11 +47,19 @@ static struct file_operations gpio_fops = {
   .release = gpio_close,
 };
 
+static char* gpio_devnode(const struct device* dev, umode_t* mode) {
+  if (mode) {
+    *mode = 0666; // rw-rw-rw-
+  }
+  return NULL;
+}
+
 int init_module(void) {
   static void* map;
 
   device_major = register_chrdev(0, DEVICE_NAME, &gpio_fops);
   gpio_class = class_create(CLASS_NAME);
+  gpio_class->devnode = gpio_devnode;
   gpio_device = device_create(gpio_class, NULL, MKDEV(device_major, device_minor), NULL, NODE_NAME);
 
   map = ioremap(GPIO_BASE, GPIO_SIZE);
