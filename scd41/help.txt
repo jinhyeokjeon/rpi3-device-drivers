@@ -1,0 +1,32 @@
+# 1. 커널 소스 내려받기
+sudo apt update
+sudo apt install git bc bison flex libssl-dev make libc6-dev libncurses5-dev -y
+
+git clone --depth=1 https://github.com/raspberrypi/linux.git
+cd linux
+
+# 2. 디바이스 트리 파일 수정
+vim arch/arm/boot/dts/broadcom/bcm2710-rpi-3-b.dts
+
+  # 2.1 맨 아래에 추가
+  &i2c1 {
+      status = "okay";
+
+      scd41@62 {
+          compatible = "sensirion,scd41";
+          reg = <0x62>;
+      };
+  };
+
+# 3. 빌드
+  # 3.1 .config 파일 생성
+  make ARCH=arm64 bcm2711_defconfig
+  (라즈베리파이 공식 문서: RPi3/64bit 빌드시 bcm2711_defconfig 쓰라고 안내)
+
+  # 3.2 DTB 빌드
+  make ARCH=arm64 dtbs
+
+  # 3.3 교체
+  sudo cp arch/arm64/boot/dts/broadcom/bcm2710-rpi-3-b.dtb /boot/firmware/
+
+# 4. 재부팅
