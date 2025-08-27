@@ -24,6 +24,7 @@ static u8 scd41_crc8(const u8* data, int len) {
 static int last_co2_ppm;
 static int last_temp_c;  /* 0.01 단위 */
 static int last_hum_pc;  /* 0.01 단위 */
+static bool scd41_enabled = false;
 
 static int scd41_read_measurement(struct i2c_client* client) {
   u8 cmd[2], buf[9];
@@ -61,9 +62,6 @@ static int scd41_read_measurement(struct i2c_client* client) {
   last_temp_c = temp_c;
   last_hum_pc = hum_pc;
 
-  pr_info("scd41: CO2=%d ppm, Temp=%d.%02d C, Hum=%d.%02d %%\n",
-    co2_ppm, temp_c / 100, temp_c % 100, hum_pc / 100, hum_pc % 100);
-
   return 0;
 }
 
@@ -73,6 +71,9 @@ static int scd41_thread_fn(void* data) {
   u8 cmd[2];
   int ret;
 
+  scd41_enabled = true;
+  pr_info("scd41: measurement started\n");
+
   /* Start measurement */
   cmd[0] = 0x21; cmd[1] = 0xB1;
   ret = i2c_master_send(client, cmd, 2);
@@ -80,7 +81,6 @@ static int scd41_thread_fn(void* data) {
     pr_err("scd41: failed to start measurement\n");
     return ret;
   }
-  pr_info("scd41: periodic measurement started\n");
 
   /* 루프: 5초마다 측정 */
   while (!kthread_should_stop()) {
@@ -92,6 +92,8 @@ static int scd41_thread_fn(void* data) {
   cmd[0] = 0x3F; cmd[1] = 0x86;
   i2c_master_send(client, cmd, 2);
   pr_info("scd41: measurement stopped\n");
+
+  scd41_enabled = false;
 
   return 0;
 }
@@ -105,18 +107,58 @@ static ssize_t temp_show(struct device* dev, struct device_attribute* attr, char
 static ssize_t hum_show(struct device* dev, struct device_attribute* attr, char* buf) {
   return sprintf(buf, "%d.%02d\n", last_hum_pc / 100, last_hum_pc % 100);
 }
+static ssize_t enable_show(struct device* dev, struct device_attribute* attr, char* buf) {
+  return sprintf(buf, "%d\n", scd41_enabled ? 1 : 0);
+}
+static ssize_t enable_store(struct device* dev, struct device_attribute* attr, const char* buf, size_t count) {
+  char tmp[16];
+
+  if (count >= sizeof(tmp) - 1) {
+    return -EINVAL;
+  }
+
+  memcpy(tmp, buf, count);
+  tmp[count] = '\0';
+
+  if (!strcmp(tmp, "1") || !strcmp(tmp, "1\n")) {
+    if (scd41_enabled) {
+      return count;
+    }
+    scd41_thread = kthread_run(scd41_thread_fn, dev_get_drvdata(dev), "scd41_thread");
+    if (IS_ERR(scd41_thread)) {
+      pr_err("scd41: failed to create kthread\n");
+      return PTR_ERR(scd41_thread);
+    }
+  }
+  else if (!strcmp(tmp, "0") || !strcmp(tmp, "0\n")) {
+    if (!scd41_enabled) {
+      return count;
+    }
+    if (scd41_thread) {
+      kthread_stop(scd41_thread);
+      scd41_thread = NULL;
+    }
+  }
+  else {
+    return -EINVAL;
+  }
+
+  return count;
+}
 
 /* struct device_attribute: sysfs에 만들어질 파일 하나 */
 /* DEVICE_ATTR_R0(name) 매크로가 만들어줌 */
-static DEVICE_ATTR_RO(co2);
 /* struct device_attribute dev_attr_co2 = { .attr = { .name = "co2", .mode = 0444 }, .show = co2_show, } */
+static DEVICE_ATTR_RO(co2);
 static DEVICE_ATTR_RO(temp);
 static DEVICE_ATTR_RO(hum);
+static DEVICE_ATTR_RW(enable);
 
 static struct attribute* scd41_attrs[] = {
   &dev_attr_co2.attr,
   &dev_attr_temp.attr,
   &dev_attr_hum.attr,
+  &dev_attr_enable.attr,
   NULL,
 };
 
@@ -135,6 +177,8 @@ static int scd41_probe(struct i2c_client* client) {
     pr_err("scd41: failed to create sysfs group\n");
     return ret;
   }
+
+  dev_set_drvdata(&client->dev, client);
 
   /* kthread 생성 */
   scd41_thread = kthread_run(scd41_thread_fn, client, "scd41_thread");
