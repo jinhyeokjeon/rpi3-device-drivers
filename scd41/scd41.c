@@ -4,6 +4,10 @@
 #include <linux/delay.h>
 #include <linux/kthread.h>
 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Jinhyeok Jeon");
+MODULE_DESCRIPTION("SCD41 I2C Driver (DT-based)");
+
 #define SCD41_DRV_NAME  "scd41"
 
 static u8 scd41_crc8(const u8* data, int len) {
@@ -226,7 +230,14 @@ static struct i2c_driver scd41_driver = {
 
 /* DT 기반일 땐 이 매크로 하나로 init/exit 처리 */
 module_i2c_driver(scd41_driver);
+/*
+static int __init scd41_driver_init(void) {
+  return i2c_add_driver(&scd41_driver);
+}
+static void __exit scd41_driver_exit(void) {
+  i2c_del_driver(&scd41_driver);
+}
 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Jinhyeok Jeon");
-MODULE_DESCRIPTION("SCD41 I2C Driver (DT-based)");
+module_init(scd41_driver_init);
+module_exit(scd41_driver_exit);
+*/
