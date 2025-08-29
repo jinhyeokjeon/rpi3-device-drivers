@@ -1,5 +1,6 @@
 # rpi3-device-drivers
-A collection of hardware device drivers developed for Raspberry Pi 3 on 64-bit Raspbian.
+이 레포지토리는 Raspberry Pi 3 (64-bit Raspbian) 환경에서 개발한 다양한 디바이스 드라이버와,
+해당 드라이버들을 활용하여 구현한 미니 프로젝트들을 포함하고 있습니다.
 
 ## 온습도 및 CO2 농도 측정기
 
