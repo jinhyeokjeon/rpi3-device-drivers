@@ -87,8 +87,16 @@ static int scd41_thread_fn(void* data) {
   }
 
   /* 루프: 5초마다 측정 */
-  while (!kthread_should_stop()) {
-    msleep(5000);
+  while (true) {
+    for (int i = 0; i < 50; ++i) {
+      if (kthread_should_stop()) {
+        break;
+      }
+      msleep(100);
+    }
+    if (kthread_should_stop()) {
+      break;
+    }
     scd41_read_measurement(client);
   }
 
@@ -183,14 +191,6 @@ static int scd41_probe(struct i2c_client* client) {
   }
 
   dev_set_drvdata(&client->dev, client);
-
-  /* kthread 생성 */
-  scd41_thread = kthread_run(scd41_thread_fn, client, "scd41_thread");
-  if (IS_ERR(scd41_thread)) {
-    pr_err("scd41: failed to create kthread\n");
-    sysfs_remove_group(&client->dev.kobj, &scd41_group);
-    return PTR_ERR(scd41_thread);
-  }
 
   return 0;
 }

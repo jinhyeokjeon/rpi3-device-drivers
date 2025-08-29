@@ -144,6 +144,23 @@ static long lcd_ioctl(struct file* file, unsigned int cmd, unsigned long arg) {
     break;
   }
 
+  case LCD_IOCTL_SET_CURSOR:
+    int pos;
+    pos = (int)arg;
+
+    if (pos < 0 || pos > 31)
+      return -EINVAL;
+
+    /* DDRAM 주소 계산 */
+    uint8_t addr;
+    if (pos < 16)
+      addr = pos;        // 1행
+    else
+      addr = 0x40 + (pos - 16); // 2행
+
+    lcd_command(0x80 | addr);
+    break;
+
   default:
     return -ENOTTY;
   }

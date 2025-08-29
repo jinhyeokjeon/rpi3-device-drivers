@@ -46,8 +46,8 @@ static irqreturn_t isr_func(int irq, void* data) {
   static unsigned long last_jiffies = 0;
   unsigned long now = jiffies;
 
-  // 6000ms 안에 들어온 인터럽트는 무시
-  if (time_before(now, last_jiffies + msecs_to_jiffies(6000))) {
+  // 1000ms 안에 들어온 인터럽트는 무시
+  if (time_before(now, last_jiffies + msecs_to_jiffies(1000))) {
     return IRQ_HANDLED;
   }
 
